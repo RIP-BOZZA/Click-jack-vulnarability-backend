@@ -49,7 +49,7 @@ async def scan_clickjacking(request: ScanRequest):
     # Prefer PDF if exists, otherwise HTML
     download_file = report_meta["pdf_filename"] or report_meta["html_filename"]
     report_url = f"/reports/{download_file}"
-
+    print(selenium_result)
     response_data = {
         "target": str(target),
         "header_scan": header_result,

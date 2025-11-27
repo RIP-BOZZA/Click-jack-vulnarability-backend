@@ -1,14 +1,18 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
-
 def get_driver(headless=True):
-    options = Options()
+    chrome_options = Options()
+
     if headless:
-        options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--headless=new")
 
-    # Add more options later
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
 
-    return webdriver.Chrome(options=options)
+    chrome_options.set_capability(
+        "goog:loggingPrefs", {"performance": "ALL"}
+    )
+
+    driver = webdriver.Chrome(options=chrome_options)
+    return driver
