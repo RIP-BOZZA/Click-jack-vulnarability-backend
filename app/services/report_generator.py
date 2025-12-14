@@ -5,7 +5,6 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from app.core.config import settings
 
-# Try to import WeasyPrint for PDF generation
 try:
     from weasyprint import HTML  # type: ignore
 
@@ -14,7 +13,6 @@ except Exception:
     WEASYPRINT_AVAILABLE = False
 
 
-# Resolve directories
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # app/
 TEMPLATE_DIR = os.path.join(BASE_DIR, "templates")
 REPORT_DIR = settings.REPORT_DIR
@@ -46,7 +44,6 @@ def generate_report(scan_data: dict) -> dict:
 
     template = env.get_template("report.html")
 
-    # Build context for template
     context = {
         "report_id": report_id,
         "generated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
@@ -54,7 +51,6 @@ def generate_report(scan_data: dict) -> dict:
         "headers": scan_data.get("headers", {}),
         "selenium": scan_data.get("selenium", {}),
         "final_vulnerable": scan_data.get("final_vulnerable", False),
-        # screenshot URL relative to /reports
         "screenshot_url": None,
     }
 
@@ -64,13 +60,11 @@ def generate_report(scan_data: dict) -> dict:
     if screenshot_name:
         context["screenshot_url"] = f"/reports/{screenshot_name}"
 
-    # Render HTML
     rendered_html = template.render(**context)
 
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(rendered_html)
 
-    # Try to generate PDF if WeasyPrint is available
     pdf_created = False
     if WEASYPRINT_AVAILABLE:
         try:

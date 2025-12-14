@@ -16,7 +16,6 @@ class ScanRequest(BaseModel):
 async def scan_clickjacking(request: ScanRequest):
     target = request.target_url
 
-    # ---- Stage 1: Header Scan ----
     header_result = scan_headers(target)
     if "error" in header_result:
         raise HTTPException(status_code=400, detail=header_result["error"])
@@ -30,13 +29,10 @@ async def scan_clickjacking(request: ScanRequest):
     elif xfo and xfo.upper() in ["ALLOW-FROM", "ALLOWALL"]:
         header_vulnerable = True
 
-    # ---- Stage 2: Selenium PoC ----
     selenium_result = run_selenium_poc(target)
 
-    # ---- Final verdict ----
     vulnerable = header_vulnerable or selenium_result.get("iframe_worked", False)
 
-    # ---- Generate report (HTML + PDF) ----
     report_meta = generate_report(
         {
             "target_url": str(target),
@@ -46,10 +42,8 @@ async def scan_clickjacking(request: ScanRequest):
         }
     )
 
-    # Prefer PDF if exists, otherwise HTML
     download_file = report_meta["pdf_filename"] or report_meta["html_filename"]
     report_url = f"/reports/{download_file}"
-    print(selenium_result)
     response_data = {
         "target": str(target),
         "header_scan": header_result,

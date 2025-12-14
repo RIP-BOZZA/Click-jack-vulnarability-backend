@@ -11,13 +11,13 @@ from jinja2 import Environment, FileSystemLoader
 
 env = Environment(loader=FileSystemLoader("app/templates"))
 
-
-def run_selenium_poc(target_url: str):
+def run_selenium_poc(target_url):
     driver = None
     try:
+        target_url = str(target_url)
+
         driver = get_driver(headless=settings.SELENIUM_HEADLESS)
 
-        # ------------------ 1. Load Target Directly (For Header Capture) ------------------
         driver.get(target_url)
         time.sleep(4)
 
@@ -45,7 +45,6 @@ def run_selenium_poc(target_url: str):
             (csp and "frame-ancestors" in csp.lower())
         )
 
-        # ------------------ 2. Create Attacker PoC Page ------------------
         template = env.get_template("attacker_template.html")
         html = template.render(target_url=target_url)
 
@@ -56,36 +55,13 @@ def run_selenium_poc(target_url: str):
         driver.get(f"file:///{temp_html}")
         time.sleep(3)
 
-        # ------------------ 3. Screenshot Evidence ------------------
         screenshot_name = f"{uuid.uuid4()}.png"
         screenshot_path = os.path.join(settings.REPORT_DIR, screenshot_name)
         driver.save_screenshot(screenshot_path)
 
-        # ------------------ 4. Safe Iframe Validation (No False Positives) ------------------
-        iframe_visual = True
-        try:
-            iframe = driver.find_element(By.ID, "targetFrame")
-            driver.switch_to.frame(iframe)
-
-            html_source = driver.page_source.lower()
-
-            if (
-                "refused to connect" in html_source or
-                "x-frame-options" in html_source or
-                "blocked" in html_source
-            ):
-                iframe_visual = False
-
-            driver.switch_to.default_content()
-
-        except Exception as e :
-            print(f"exception ------{e}")
-            iframe_visual = False
-
         return {
             "target": target_url,
             "iframe_worked": clickjacking_vulnerable,
-            "iframe_visible": iframe_visual,
             "x_frame_options": xfo,
             "content_security_policy": csp,
             "screenshot": screenshot_name,
