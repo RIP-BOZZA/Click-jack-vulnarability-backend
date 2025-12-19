@@ -5,12 +5,12 @@ from datetime import datetime
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from app.core.config import settings
 
-try:
-    from weasyprint import HTML  # type: ignore
+# try:
+from weasyprint import HTML  # type: ignore
 
-    WEASYPRINT_AVAILABLE = True
-except Exception:
-    WEASYPRINT_AVAILABLE = False
+#     WEASYPRINT_AVAILABLE = True
+# except Exception:
+#     WEASYPRINT_AVAILABLE = False
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # app/
@@ -66,12 +66,12 @@ def generate_report(scan_data: dict) -> dict:
         f.write(rendered_html)
 
     pdf_created = False
-    if WEASYPRINT_AVAILABLE:
-        try:
-            HTML(string=rendered_html, base_url=BASE_DIR).write_pdf(pdf_path)
-            pdf_created = True
-        except Exception:
-            pdf_created = False
+    # if WEASYPRINT_AVAILABLE:
+    try:
+        HTML(string=rendered_html, base_url=BASE_DIR).write_pdf(pdf_path)
+        pdf_created = True
+    except Exception:
+        pdf_created = False
 
     return {
         "report_id": report_id,

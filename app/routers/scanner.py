@@ -1,5 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Form
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, HttpUrl
+import os
 
 from app.services.header_scanner import scan_headers
 from app.services.selenium_scanner import run_selenium_poc
@@ -7,18 +10,22 @@ from app.services.report_generator import generate_report
 
 router = APIRouter(prefix="/scan", tags=["Scan"])
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+TEMPLATE_DIR = os.path.join(BASE_DIR, "app", "templates")
+templates = Jinja2Templates(directory=TEMPLATE_DIR)
+
 
 class ScanRequest(BaseModel):
     target_url: HttpUrl
 
 
-@router.post("/")
-async def scan_clickjacking(request: ScanRequest):
-    target = request.target_url
-
+def perform_scan(target: str) -> dict:
+    """Run the header + selenium checks and generate a report. Returns the same
+    response shape used by the JSON API.
+    """
     header_result = scan_headers(target)
     if "error" in header_result:
-        raise HTTPException(status_code=400, detail=header_result["error"])
+        return {"error": header_result["error"]}
 
     xfo = header_result.get("x_frame_options")
     csp = header_result.get("content_security_policy")
@@ -62,3 +69,26 @@ async def scan_clickjacking(request: ScanRequest):
     }
 
     return response_data
+
+
+@router.post("/")
+async def scan_clickjacking(request: ScanRequest):
+    result = perform_scan(str(request.target_url))
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result
+
+
+@router.get("/ui", response_class=HTMLResponse)
+async def scan_ui(request: Request):
+    return templates.TemplateResponse("scan_ui.html", {"request": request, "result": None, "error": None})
+
+
+@router.post("/ui", response_class=HTMLResponse)
+async def scan_ui_post(request: Request, target_url: str = Form(...)):
+    result = perform_scan(target_url)
+    if "error" in result:
+        return templates.TemplateResponse("scan_ui.html", {"request": request, "result": None, "error": result["error"], "target": target_url})
+    return templates.TemplateResponse("scan_ui.html", {"request": request, "result": result, "error": None, "target": target_url})
+
+

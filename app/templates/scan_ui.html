@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Clickjacking Scanner</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(0, 255, 157, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 157, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 20s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(50px, 50px); }
+    }
+
+    /* Glowing orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .orb1 {
+      width: 400px;
+      height: 400px;
+      background: #00ff9d;
+      top: -100px;
+      right: -100px;
+      animation: float 15s ease-in-out infinite;
+    }
+
+    .orb2 {
+      width: 300px;
+      height: 300px;
+      background: #00d4ff;
+      bottom: -50px;
+      left: -50px;
+      animation: float 20s ease-in-out infinite reverse;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(50px, 50px); }
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 50px;
+      animation: slideDown 0.6s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .header h1 {
+      font-size: 3em;
+      background: linear-gradient(135deg, #00ff9d 0%, #00d4ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+      text-shadow: 0 0 30px rgba(0, 255, 157, 0.3);
+      letter-spacing: 2px;
+    }
+
+    .header .subtitle {
+      color: #8b92a8;
+      font-size: 1.1em;
+      letter-spacing: 1px;
+    }
+
+    .header .shield-icon {
+      font-size: 4em;
+      margin-bottom: 20px;
+      display: inline-block;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    /* Main card */
+    .card {
+      background: rgba(26, 31, 58, 0.8);
+      border: 1px solid rgba(0, 255, 157, 0.2);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Error message */
+    .error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #ff6b6b;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      font-size: 0.95em;
+      animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    /* Form */
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      color: #00ff9d;
+      font-size: 0.95em;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: bold;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 15px 20px;
+      background: rgba(10, 14, 39, 0.6);
+      border: 1px solid rgba(0, 255, 157, 0.3);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1em;
+      font-family: 'Courier New', monospace;
+      transition: all 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #00ff9d;
+      box-shadow: 0 0 20px rgba(0, 255, 157, 0.3);
+      background: rgba(10, 14, 39, 0.8);
+    }
+
+    input[type="text"]::placeholder {
+      color: #4a5568;
+    }
+
+    button {
+      background: linear-gradient(135deg, #00ff9d 0%, #00d4ff 100%);
+      color: #0a0e27;
+      border: none;
+      padding: 15px 40px;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 255, 157, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s;
+    }
+
+    button:hover::before {
+      left: 100%;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 255, 157, 0.5);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    /* Results section */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 157, 0.3), transparent);
+      margin: 40px 0;
+    }
+
+    h2 {
+      color: #00ff9d;
+      font-size: 2em;
+      margin-bottom: 30px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    h3 {
+      color: #00d4ff;
+      font-size: 1.3em;
+      margin: 30px 0 20px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-left: 4px solid #00d4ff;
+      padding-left: 15px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 15px;
+      margin-bottom: 15px;
+      padding: 15px;
+      background: rgba(10, 14, 39, 0.4);
+      border-radius: 8px;
+      border-left: 3px solid rgba(0, 255, 157, 0.5);
+      transition: all 0.3s ease;
+    }
+
+    .info-grid:hover {
+      background: rgba(10, 14, 39, 0.6);
+      transform: translateX(5px);
+    }
+
+    .info-label {
+      color: #8b92a8;
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 0.85em;
+      letter-spacing: 0.5px;
+    }
+
+    .info-value {
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      word-break: break-all;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 0.9em;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .vulnerable-yes {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ff6b6b;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    .vulnerable-no {
+      background: rgba(0, 255, 157, 0.2);
+      color: #00ff9d;
+      border: 1px solid rgba(0, 255, 157, 0.5);
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* Report links */
+    .report-links {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .report-links a,
+    .report-links .link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 25px;
+      background: rgba(0, 212, 255, 0.1);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      color: #00d4ff;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      font-size: 0.95em;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .report-links a:hover,
+    .report-links .link-btn:hover {
+      background: rgba(0, 212, 255, 0.2);
+      border-color: #00d4ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+    }
+
+    .muted {
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    .report-id {
+      margin-top: 25px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      font-size: 0.85em;
+      color: #8b92a8;
+      border: 1px dashed rgba(139, 146, 168, 0.3);
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 2em;
+      }
+
+      .card {
+        padding: 25px;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .report-links {
+        flex-direction: column;
+      }
+
+      .report-links a,
+      .report-links .link-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+
+  <div class="container">
+    <div class="header">
+      <div class="shield-icon">🛡️</div>
+      <h1>CLICKJACKING SCANNER</h1>
+      <p class="subtitle">Advanced Security Assessment Tool</p>
+    </div>
+
+    <div class="card">
+      {% if error %}
+        <div class="error">⚠️ Error: {{ error }}</div>
+      {% endif %}
+
+      <form method="post">
+        <div class="form-group">
+          <label for="target_url">🎯 Target URL</label>
+          <input 
+            id="target_url" 
+            name="target_url" 
+            type="text" 
+            placeholder="https://example.com" 
+            value="{{ target or '' }}" 
+            required 
+          />
+        </div>
+        <button type="submit">🚀 Start Scan</button>
+      </form>
+
+      {% if result %}
+        <div class="divider"></div>
+        
+        <h2>📊 Scan Results</h2>
+        
+        <div class="info-grid">
+          <div class="info-label">Target</div>
+          <div class="info-value">{{ result.target }}</div>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-label">Status</div>
+          <div class="info-value">
+            {% if result.vulnerable == 'Yes' or result.vulnerable == True or result.vulnerable == 'true' %}
+              <span class="status-badge vulnerable-yes">⚠️ Vulnerable</span>
+            {% else %}
+              <span class="status-badge vulnerable-no">✓ Protected</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <h3>🔍 Header Analysis</h3>
+        
+        <div class="info-grid">
+          <div class="info-label">X-Frame-Options</div>
+          <div class="info-value">{{ result.header_scan.x_frame_options or '❌ Not present' }}</div>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-label">CSP</div>
+          <div class="info-value">{{ result.header_scan.content_security_policy or '❌ Not present' }}</div>
+        </div>
+
+        <h3>🧪 Selenium Test</h3>
+        
+        <div class="info-grid">
+          <div class="info-label">Iframe Loaded</div>
+          <div class="info-value">{{ result.selenium_test.iframe_worked }}</div>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-label">X-Frame-Options</div>
+          <div class="info-value">{{ result.selenium_test.x_frame_options or '—' }}</div>
+        </div>
+
+        {% if result.selenium_test.screenshot %}
+        <div class="info-grid">
+          <div class="info-label">Screenshot</div>
+          <div class="info-value">
+            <a href="{{ result.selenium_test.screenshot | replace('/reports/', '/reports/') }}" target="_blank" style="color: #00d4ff;">
+              📸 View Screenshot
+            </a>
+          </div>
+        </div>
+        {% endif %}
+
+        <h3>📄 Reports</h3>
+        
+        <div class="report-links">
+          <a href="{{ result.report_files.html }}" target="_blank">
+            📋 HTML Report
+          </a>
+          {% if result.report_files.pdf %}
+            <a href="{{ result.report_files.pdf }}" target="_blank" download>
+              📥 Download PDF
+            </a>
+          {% else %}
+            <span class="link-btn muted">
+              PDF not available
+            </span>
+          {% endif %}
+        </div>
+
+        <div class="report-id">
+          🆔 Report ID: {{ result.report_id }}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
