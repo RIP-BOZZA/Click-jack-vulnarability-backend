@@ -64,7 +64,7 @@ def run_selenium_poc(target_url):
             "iframe_worked": clickjacking_vulnerable,
             "x_frame_options": xfo,
             "content_security_policy": csp,
-            "screenshot": screenshot_name,
+            "screenshot": f"reports/{screenshot_name}",
         }
 
     except Exception as e:

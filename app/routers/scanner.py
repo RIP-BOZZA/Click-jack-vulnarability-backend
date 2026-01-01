@@ -79,16 +79,16 @@ async def scan_clickjacking(request: ScanRequest):
     return result
 
 
-@router.get("/ui", response_class=HTMLResponse)
-async def scan_ui(request: Request):
-    return templates.TemplateResponse("scan_ui.html", {"request": request, "result": None, "error": None})
+# @router.get("/ui", response_class=HTMLResponse)
+# async def scan_ui(request: Request):
+#     return templates.TemplateResponse("scan_ui.html", {"request": request, "result": None, "error": None})
 
 
-@router.post("/ui", response_class=HTMLResponse)
-async def scan_ui_post(request: Request, target_url: str = Form(...)):
-    result = perform_scan(target_url)
-    if "error" in result:
-        return templates.TemplateResponse("scan_ui.html", {"request": request, "result": None, "error": result["error"], "target": target_url})
-    return templates.TemplateResponse("scan_ui.html", {"request": request, "result": result, "error": None, "target": target_url})
+# @router.post("/ui", response_class=HTMLResponse)
+# async def scan_ui_post(request: Request, target_url: str = Form(...)):
+#     result = perform_scan(target_url)
+#     if "error" in result:
+#         return templates.TemplateResponse("scan_ui.html", {"request": request, "result": None, "error": result["error"], "target": target_url})
+#     return templates.TemplateResponse("scan_ui.html", {"request": request, "result": result, "error": None, "target": target_url})
 
 

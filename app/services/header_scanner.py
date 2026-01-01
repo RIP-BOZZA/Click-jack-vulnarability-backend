@@ -11,4 +11,5 @@ def scan_headers(url: str):
             "content_security_policy": headers.get("Content-Security-Policy"),
         }
     except Exception as e:
+        print(e)
         return {"error": str(e)}
