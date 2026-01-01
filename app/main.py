@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.routers.scanner import router as scan_router
+from app.routers.main_ui import ui_router
 from fastapi.staticfiles import StaticFiles
 
 
@@ -10,6 +11,7 @@ def create_app():
         version="1.0.0",
     )
     app.include_router(scan_router)
+    app.include_router(ui_router)
     return app
 
 
