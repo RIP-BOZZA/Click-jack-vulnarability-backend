@@ -4,6 +4,8 @@ from datetime import datetime
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from app.core.config import settings
+import pdfkit
+
 
 # try:
 from weasyprint import HTML  # type: ignore
@@ -58,23 +60,34 @@ def generate_report(scan_data: dict) -> dict:
         context["selenium"].get("screenshot") if context["selenium"] else None
     )
     if screenshot_name:
-        context["screenshot_url"] = f"/reports/{screenshot_name}"
+        context["screenshot_url"] = f"/{screenshot_name}"
 
     rendered_html = template.render(**context)
 
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(rendered_html)
 
-    pdf_created = False
-    # if WEASYPRINT_AVAILABLE:
-    try:
-        HTML(string=rendered_html, base_url=BASE_DIR).write_pdf(pdf_path)
-        pdf_created = True
-    except Exception:
-        pdf_created = False
+    # pdf_created = False
+    # # if WEASYPRINT_AVAILABLE:
+    # try:
+    #     HTML(string=rendered_html, base_url=BASE_DIR).write_pdf(pdf_path)
+    #     pdf_created = True
+    # except Exception:
+    #     pdf_created = False
+    options = {
+    "page-size": "A4",
+    "margin-top": "20mm",
+    "margin-bottom": "20mm",
+    "margin-left": "20mm",
+    "margin-right": "20mm",
+    "enable-local-file-access": "",  # 🔥 REQUIRED
+    "encoding": "UTF-8",
+}
+
+    pdfkit.from_file(html_path, pdf_path, options=options)
 
     return {
         "report_id": report_id,
         "html_filename": html_filename,
-        "pdf_filename": pdf_filename if pdf_created else None,
+        "pdf_filename": pdf_filename,
     }
